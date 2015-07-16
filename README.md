@@ -74,7 +74,7 @@ Duplicating a window is easy: The duplicate is instantaneously visible
 The GUI is not fully optimized, yet you have like 700 fps with 20 simple windows on the screen on a notebook PC. Controls are stored in a std vector as share ptr. For rendering, it is not necessary to evaluate the string keys.
 
 
-#### Mathlib included from 
-#### http://sourceforge.net/projects/nebuladevice/
+Mathlib included from 
+http://sourceforge.net/projects/nebuladevice/
 
-#### (C) by Sven Forstmann in 2015
+(C) by Sven Forstmann in 2015
