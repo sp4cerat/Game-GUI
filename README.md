@@ -1,11 +1,7 @@
 ### Game GUI - A Simple GUI with skin-support for OpenGL Games
 
-#### (C) by Sven Forstmann in 2015
 #### License : MIT
 #### http://opensource.org/licenses/MIT
-
-#### Mathlib included from 
-#### http://sourceforge.net/projects/nebuladevice/
 
 **Summary** 
 
@@ -78,4 +74,7 @@ Duplicating a window is easy: The duplicate is instantaneously visible
 The GUI is not fully optimized, yet you have like 700 fps with 20 simple windows on the screen on a notebook PC. Controls are stored in a std vector as share ptr. For rendering, it is not necessary to evaluate the string keys.
 
 
-The GUI system with Source Code (VS2012) is available on the main page. 
+#### Mathlib included from 
+#### http://sourceforge.net/projects/nebuladevice/
+
+#### (C) by Sven Forstmann in 2015
