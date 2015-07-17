@@ -22,7 +22,7 @@
     <ProjectGuid>{98864040-E723-43CF-9479-6FBCDF2F6C51}</ProjectGuid>
     <RootNamespace>Cutscene</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>GameGui</ProjectName>
+    <ProjectName>GameGui.GLUT</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

@@ -1828,12 +1828,12 @@ class Gui
 		}
 		clip_rect.set_rect(0,0,screen_resolution_x,screen_resolution_y);
 		loopi(0, screen[active_screen].tab.size())		if( screen[active_screen].tab[i]		.find_active(0,0,parent,i)) return ;
-		loopi(0, screen[active_screen].button.size())	if( screen[active_screen].button[i]		.find_active(0,0,parent,i)) return ;
 		loopi(0, screen[active_screen].radio.size())	if( screen[active_screen].radio[i]		.find_active(0,0,parent,i)) return ;
 		loopi(0, screen[active_screen].checkbox.size())	if( screen[active_screen].checkbox[i]	.find_active(0,0,parent,i)) return ;
 		loopi(0, screen[active_screen].textedit.size())	if( screen[active_screen].textedit[i]	.find_active(0,0,parent,i)) return ;
 		loopi(0, screen[active_screen].combo.size())	if( screen[active_screen].combo[i]		.find_active(0,0,parent,i)) return ;
 		loopi(0, screen[active_screen].slider.size())	if( screen[active_screen].slider[i]		.find_active(0,0,parent,i)) return ;
+		loopi(0, screen[active_screen].button.size())	if( screen[active_screen].button[i]		.find_active(0,0,parent,i)) return ;
 		return ;
 	}
 
