@@ -63,7 +63,7 @@ Setting a custom skin:
     gui.window["id1"].button["load"].skin=Skin("normal.png","hover.png","pressed.png");
 
 Also you have direct access to a skin's texture to use it as output of a FBO e.g.
-The 3D viewer of screenshot1 uses that.
+The 3D viewer of the screenshot below uses that.
 
     gui.window["id1"].button["load"].skin.texture_normal=fbo.texture_id;
 
