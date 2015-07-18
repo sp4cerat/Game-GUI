@@ -5,8 +5,10 @@
 
 **Summary** 
 
-After trying several gui's more or less suited for games (LibRocket, Qt, NVWidgets, CEgui, etc), I found that none of them was really light weight, easy to use and fully skinable at the same time. This was the reason I started to write my own GUI / C++ about a month ago. Now, it is finally ready for a first release. Here is how it may look ![Screenshot1](http://i.imgur.com/piMots7.png)  
-![Screenshot2](http://i.imgur.com/RXKUZ6G.png)
+After trying several gui's more or less suited for games (LibRocket, Qt, NVWidgets, CEgui, etc), I found that none of them was really light weight, easy to use and fully skinable at the same time. This was the reason I started to write my own GUI / C++ about a month ago. Now, it is finally ready for a first release. Here is how it may look:
+[Screenshot1](http://i.imgur.com/piMots7.png)  [Screenshot2](http://i.imgur.com/RXKUZ6G.png)
+
+![Screenshot1](http://i.imgur.com/mP1KerY.png)
 
 **Features**
 
