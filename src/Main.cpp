@@ -136,17 +136,6 @@ void init_gui()
 
 	// -------------------------------------------------------------------------
 
-	// also use our previous menu as context menu and file menu
-	// Note : "context_menu" is reserved for the context menu
-	//		  all other id names are common menus on the background
-
-	gui.screen[0].menu["context_menu"]=m;
-
-	gui.screen[0].menu["file"]=m;
-	gui.screen[0].menu["file"].y=5;
-
-	// -------------------------------------------------------------------------
-
 	// Add Button to Background
 
 	gui.dialog["sample"]=w; // store for later use in the callback
@@ -155,9 +144,18 @@ void init_gui()
 	gui.screen[0].button["more"].callback_pressed=
 		[](Gui::Window *w,Gui::Button* control,int index) // menu button callback
 		{
-			int id=gui.screen[0].window.add(gui.dialog["sample"]);
-			gui.screen[0].window[id].x= timeGetTime() % (int)gui.screen_resolution_x;
-			gui.screen[0].window[id].y= timeGetTime() % (int)gui.screen_resolution_y;
+			Gui::Window w1,w2;
+			w1=gui.dialog["sample"];
+			w2=gui.dialog["3D"];
+
+			w1.x= timeGetTime() % (int)gui.screen_resolution_x;
+			w1.y= timeGetTime() % (int)gui.screen_resolution_y;
+			
+			w2.x=(timeGetTime()+500) % (int)gui.screen_resolution_x;
+			w2.y=(timeGetTime()+300) % (int)gui.screen_resolution_y;
+
+			gui.screen[0].window.add(w1);
+			gui.screen[0].window.add(w2);
 		};
 
 	// Add Tabbed Window to Background
@@ -175,6 +173,113 @@ void init_gui()
 	}
 	t.flags=Gui::Tab::MOVABLE; // Make it movable
 	gui.screen[0].tab["mytab"]=t;
+
+	// -------------------------------------------------------------------------
+	// Simple 3D Viewer
+
+	w=Gui::Window("3D View",150,150,400,400);	
+	w.menu["Menu"]=m;
+
+	// Add simple Renderer
+	{
+		// render callback function
+		auto render_func=[](Gui::Window *window,Gui::Button* control,int index)
+		{	
+			if((!control) || (!window) || window->get_toggled() ) return;
+
+			Gui::Window &w=*((Gui::Window*) window);
+			Gui::Button &b=w.button["canvas"];
+
+			// resize button to window client area
+			b.x=w.pad_left;
+			b.y=w.pad_up;
+			b.sx=w.sx-w.pad_left-w.pad_right;
+			b.sy=w.sy-w.pad_up-w.pad_down;
+
+			bool draw= (b.hover||b.pressed) && (gui.mouse.button[0] || gui.mouse.button[1] || gui.mouse.wheel!=0);
+			if(control!=&b)draw=1;
+		
+			FBO *fb=(FBO*)b.var.ptr["fbo"]; if(!fb) return;
+			FBO &fbo=*(FBO*)fb;
+
+			if(b.sx!=fbo.width || b.sy!=fbo.height )
+			{
+				fbo.clear();
+				fbo.init(b.sx,b.sy);
+				b.skin.tex_normal=b.skin.tex_hover=b.skin.tex_selected=fbo.color_tex;
+				draw=1;
+			}
+			if (!draw) return;
+
+			quaternion q(b.var.vec4["rotation"]);
+			if(gui.mouse.button[0] & b.pressed)
+			{
+				quaternion qx,qy;
+				qx.set_rotate_y( (float)gui.mouse.dx/100);
+				qy.set_rotate_x(-(float)gui.mouse.dy/100);
+				q=qy*qx*q;
+				b.var.vec4["rotation"]=vec4f(q.x,q.y,q.z,q.w);
+			}
+			double z=b.var.number["zoom"];
+			if(b.hover)
+			{
+				z=clamp( z-gui.mouse.wheel*2 , 2,120 );
+				b.var.number["zoom"]=z;
+				gui.mouse.wheel=0;
+			}
+			vec4f pos=b.var.vec4["position"];
+			if(gui.mouse.button[1] && (b.pressed||b.hover))
+			{
+				pos=pos+vec4f((float)gui.mouse.dx*z/40000.0f,(float)gui.mouse.dy*z/40000.0f,0,0);
+				b.var.vec4["position"]=pos;
+			}
+
+			// render to fbo
+			fbo.enable();
+			glClearColor(0.7,0.7,0.7,1);
+			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+			glMatrixMode(GL_PROJECTION);glPushMatrix();glLoadIdentity();
+			gluPerspective(z, (GLfloat)b.sx/(GLfloat)b.sy, 0.01 , 10.0);
+			glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
+			glTranslatef(pos.x,pos.y,-pos.z);
+			matrix44 m(q);
+			glMultMatrixf(&m.m[0][0]);
+
+			glColor4f(0,0,0,1);
+			glutWireTeapot(1);
+
+			glPopMatrix();glMatrixMode(GL_PROJECTION);glPopMatrix();
+			fbo.disable();
+		};
+		w.button["canvas"]=Gui::Button("",20,250);
+		w.button["canvas"].skin=Skin("");
+		w.button["canvas"].var.vec4["position"]=vec4f(0,0,2.5,0); // vec4
+		w.button["canvas"].var.vec4["rotation"]=vec4f(1,0,0,0); // quaternion
+		w.button["canvas"].var.number["zoom"]=50; // fov
+		w.button["canvas"].var.ptr["fbo"]=0;
+		w.button["canvas"].callback_all=render_func;
+		w.button["canvas"].callback_init=[](Gui::Window *w,Gui::Button* b,int i) // call before drawing the first time
+			{
+				if(w && b){b->var.ptr["fbo"]=new FBO(100,100);}
+			};
+		w.button["canvas"].callback_exit=[](Gui::Window *w,Gui::Button* b,int i) // called from the button's destructor
+			{
+				if(w && b)if(b->var.ptr["fbo"]){delete(((FBO*)b->var.ptr["fbo"]));}
+			};
+	}
+	gui.dialog["3D"]=w;
+	gui.screen[0].window["3D View win1"]=w;
+	// -------------------------------------------------------------------------
+
+	// also use our previous menu as context menu and file menu
+	// Note : "context_menu" is reserved for the context menu
+	//		  all other id names are common menus on the background
+
+	gui.screen[0].menu["context_menu"]=m;
+
+	gui.screen[0].menu["file"]=m;
+	gui.screen[0].menu["file"].y=5;
+
 }
 ////////////////////////////////////////////////////////////////////////////////
 void draw_gui()
@@ -182,6 +287,12 @@ void draw_gui()
 	gui.draw();
 }
 ////////////////////////////////////////////////////////////////////////////////
+void exit_gui()
+{
+	gui.exit();
+}
+////////////////////////////////////////////////////////////////////////////////
+// Glut Callbacks
 void KeyDown1Static(int key, int x, int y)           { gui.keyb.key[ key&255 ] =true;  }
 void KeyDown2Static(unsigned char key, int x, int y) { gui.keyb.key[ key&255 ] =true;  }
 void KeyUp1Static(int key, int x, int y)             { gui.keyb.key[ key&255 ] =false; }
@@ -193,6 +304,7 @@ void MouseButtonStatic(int button_index, int state, int x, int y)
 	if(button_index>=3) gui.mouse.wheel_update+= button_index == 3 ? -1 : 1;
 	MouseMotionStatic (x,y);	
 }
+void OnWindowClose( void ) { exit_gui(); }
 ////////////////////////////////////////////////////////////////////////////////
 
 void disp(void);
@@ -201,6 +313,7 @@ void keyb(unsigned char key, int x, int y);
 
 int main(int argc, char **argv)
 {
+	
 	glutInit(&argc, argv);
 	glutInitWindowSize(1024, 768);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
@@ -212,18 +325,23 @@ int main(int argc, char **argv)
 
 	//glutSpecialFunc(&KeyDown1Static);
 	//glutSpecialUpFunc(&KeyUp1Static);
-	glutKeyboardFunc(&KeyDown2Static);
-	glutKeyboardUpFunc(&KeyUp2Static);
-	glutMotionFunc(&MouseMotionStatic);
-	glutPassiveMotionFunc(&MouseMotionStatic);
-	glutMouseFunc (&MouseButtonStatic);
+	glutKeyboardFunc(KeyDown2Static);
+	glutKeyboardUpFunc(KeyUp2Static);
+	glutMotionFunc(MouseMotionStatic);
+	glutPassiveMotionFunc(MouseMotionStatic);
+	glutMouseFunc (MouseButtonStatic);
+	glutCloseFunc (OnWindowClose);
 
+	glewInit();
 	glEnable(GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	init_gui();
 
 	glutMainLoop();
+
+	
+
 	return 0;
 }
 

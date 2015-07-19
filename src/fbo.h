@@ -29,6 +29,10 @@ class FBO {
 		dbo = -1;
 		init (texWidth, texHeight,format,datatype);
 	}
+	~FBO()
+	{
+		clear ();
+	}
 
 	void clear ()
 	{		

@@ -34,6 +34,9 @@ public:
     quaternion(const quaternion& q)
         : x(q.x), y(q.y), z(q.z), w(q.w)
     {};
+    quaternion(const vector4& q)
+        : x(q.x), y(q.y), z(q.z), w(q.w)
+    {};
 
     //-- setting elements -------------------------------------------
     void set(float _x, float _y, float _z, float _w) {

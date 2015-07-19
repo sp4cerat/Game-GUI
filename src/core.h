@@ -23,6 +23,7 @@
 #include "glew.h"
 #include "wglew.h"
 #include "GL/glut.h"
+#include "GL/freeglut_ext.h"
 /*
 #include "SDL/SDL.h"
 #include "SDL/SDL_opengl.h"

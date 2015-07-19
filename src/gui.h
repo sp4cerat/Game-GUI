@@ -44,6 +44,8 @@ class ControlList // kind of like map but with selectable order
 		}
         return *this;
     }
+
+	void clear(){list.clear();};
 	inline void push(std::string s,T &t)
 	{
 		list.push_back(Tuple(s,t));
@@ -188,14 +190,22 @@ class Gui
 
 	class String;
 
+	class MyVar
+	{
+		public:
+		MyVar(){ init(); };
+		~MyVar(){ exit(); };
+		virtual void init(){printf("base init\n");};
+		virtual void exit(){printf("base exit\n");};
+	};
 	struct Var
 	{
 		std::map<String,matrix44>		mat4;
 		std::map<String,vec4f>			vec4;
 		std::map<String,double>			number;
 		std::map<String,String>			string;
-		std::map<String,void*>			ptr;
 		std::map<String,Skin>			skin;
+		std::map<String,void*>			ptr;
 
 		void load(char* name)
 		{
@@ -414,7 +424,7 @@ class Gui
 		vec4f textcolor,textcolor_hover,textcolor_pressed;
 		int textsize;
 
-		Window* parent;
+		Window* parent; int parent_index;
 
 		Var var; // window variables
 
@@ -432,6 +442,8 @@ class Gui
 			textcolor_hover=global.vec4["font_color_hover"];
 			textcolor_pressed=global.vec4["font_color_pressed"];
 			textsize=global.number["font_size"];
+			parent_index=0;
+			parent=0;
 		};
 
 		Label(){init();};
@@ -484,14 +496,17 @@ class Gui
 		int flags;		// r/w
 		bool active;	// dont overwrite!
 
+		bool call_init;	// call init callback ?
+
 		enum Flags { NORMAL=0, DEACTIVATED=1 };
 
 		void init(){ type=BUTTON;skin=global.skin["button"];active=0; 		
-			callback_hover=callback_pressed=callback_all=0;parent=0;
-			flags=NORMAL;
+			callback_hover=callback_pressed=callback_all=callback_exit=callback_init=0;parent=0;
+			flags=NORMAL;call_init=1;
 		};
 		
 		Button():Label(){ init() ; align=CENTER; };
+		~Button() { if(callback_exit) callback_exit(parent,this,parent_index); };
 
 		Button(String buttontext,int x=0,int y=0,
 			int width=global.number["button_size_x"],  // default
@@ -511,10 +526,14 @@ class Gui
 		void (*callback_hover)(Window *window,Button* control,int index);
 		void (*callback_pressed)(Window *window,Button* control,int index);
 		void (*callback_all)(Window *window,Button* control,int index);
-		 
+		void (*callback_init)(Window *window,Button* control,int index);
+		void (*callback_exit)(Window *window,Button* control,int index);
+
 		void handle_callbacks(Window* w=0,int index=0)
 		{
 			if(flags==DEACTIVATED) return;
+			parent=w;parent_index=index;
+			if(call_init){ if(callback_init) call_list.push_back(CallParams(callback_init,w,this,index));call_init=0;}
 			if(active) { active_control.active=1;active_control.set(this,type,w,index); }
 			if(callback_all) call_list.push_back(CallParams(callback_all,w,this,index));
 		}
@@ -1194,7 +1213,7 @@ class Gui
 
 		Window () : Button() { init(); };
 
-		Window (String windowtitle,int pos_x=0,int pos_y=0,int width=200,int height=200, int wflags=RESIZEABLE|TITLEBAR|CLOSEBUTTON|HSCROLLBAR|VSCROLLBAR|TOGGLEBUTTON)
+		Window (String windowtitle,int pos_x=0,int pos_y=0,int width=200,int height=200, int wflags=RESIZEABLE|TITLEBAR|CLOSEBUTTON|HSCROLLBAR|VSCROLLBAR|TOGGLEBUTTON|MOVE_TO_FRONT)
 			:Button("",pos_x,pos_y,width,height)
 		{
 			init();	flags=wflags; title.text=windowtitle;
@@ -1271,7 +1290,7 @@ class Gui
 			{
 				closebutton.set_rect(	 sx-closebutton.sx-closebutton_padx,closebutton_pady,closebutton.sx,closebutton.sy ); 
 				closebutton.draw(x+ox,y+oy);
-				if(closebutton.active){flags=CLOSED;return;}
+				if(closebutton.active){close();return;}
 			}
 			if(flags&TOGGLEBUTTON)
 			{
@@ -1768,6 +1787,8 @@ class Gui
 		}
 		fclose(f1);
 	}
+
+	void exit() { 	dialog.clear();screen.clear();  };
 
 	bool init(int flags=0,String cfg_vars="../data/gui_global.txt",String cfg_skin="../data/gui_skin.txt")
 	{
