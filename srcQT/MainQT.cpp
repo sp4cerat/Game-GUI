@@ -173,10 +173,20 @@ void init_gui()
 	gui.screen[0].button["more"].callback_pressed=
 		[](Gui::Window *w,Gui::Button* control,int index) // menu button callback
 		{
-			int id=gui.screen[0].window.add(gui.dialog["sample"]);
-			gui.screen[0].window[id].x= timeGetTime() % (int)gui.screen_resolution_x;
-			gui.screen[0].window[id].y= timeGetTime() % (int)gui.screen_resolution_y;
+			Gui::Window w1,w2;
+			w1=gui.dialog["sample"];
+			w2=gui.dialog["3D"];
+
+			w1.x= timeGetTime() % (int)gui.screen_resolution_x;
+			w1.y= timeGetTime() % (int)gui.screen_resolution_y;
+			
+			w2.x=(timeGetTime()+500) % (int)gui.screen_resolution_x;
+			w2.y=(timeGetTime()+300) % (int)gui.screen_resolution_y;
+
+			gui.screen[0].window.add(w1);
+			gui.screen[0].window.add(w2);
 		};
+
 
 	// Add Tabbed Window to Background
 
@@ -193,11 +203,118 @@ void init_gui()
 	}
 	t.flags=Gui::Tab::MOVABLE; // Make it movable
 	gui.screen[0].tab["mytab"]=t;
-}
 
+
+	// -------------------------------------------------------------------------
+	// Simple 3D Viewer
+
+	// Add simple Renderer
+	{
+		// render callback function
+		auto render_func=[](Gui::Window *window,Gui::Button* control,int index)
+		{	
+			if((!control) || (!window) || window->get_toggled() ) return;
+
+			Gui::Window &w=*((Gui::Window*) window);
+			Gui::Button &b=w.button["canvas"];
+
+			// resize button to window client area
+			b.x=w.pad_left;
+			b.y=w.pad_up;
+			b.sx=w.sx-w.pad_left-w.pad_right;
+			b.sy=w.sy-w.pad_up-w.pad_down;
+
+			bool draw= (b.hover||b.pressed) && (gui.mouse.button[0] || gui.mouse.button[1] || gui.mouse.wheel!=0);
+			if(control!=&b)draw=1;
+		
+			void *fb=b.var.ptr["fbo"]; if(!fb) return;
+			FBO &fbo=*(FBO*)fb;
+
+			if(b.sx!=fbo.width || b.sy!=fbo.height )
+			{
+				fbo.clear();
+				fbo.init(b.sx,b.sy);
+				
+				draw=1;
+			}
+			b.skin.tex_normal=b.skin.tex_hover=b.skin.tex_selected=fbo.color_tex;
+			if (!draw) return;
+
+			quaternion q(b.var.vec4["rotation"]);
+			if(gui.mouse.button[0] & b.pressed)				// rotate by left mouse
+			{
+				quaternion qx,qy;
+				qx.set_rotate_y( (float)gui.mouse.dx/100);
+				qy.set_rotate_x(-(float)gui.mouse.dy/100);
+				q=qy*qx*q;
+				b.var.vec4["rotation"]=vec4f(q.x,q.y,q.z,q.w);
+			}
+			double z=b.var.number["zoom"];
+			if(b.hover)										// zoom by wheel
+			{
+				z=clamp( z-gui.mouse.wheel*2 , 2,120 );
+				b.var.number["zoom"]=z;
+				gui.mouse.wheel=0;
+			}
+			vec4f pos=b.var.vec4["position"];
+			if(gui.mouse.button[1] && (b.pressed||b.hover))	// move by middle button
+			{
+				pos=pos+vec4f((float)gui.mouse.dx*z/40000.0f,(float)gui.mouse.dy*z/40000.0f,0,0);
+				b.var.vec4["position"]=pos;
+			}
+
+			// render to fbo
+			fbo.enable();
+			glDisable(GL_TEXTURE_2D);
+			glClearColor(0.7,0.7,0.7,1);
+			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+			glMatrixMode(GL_PROJECTION);glPushMatrix();glLoadIdentity();
+			gluPerspective(z, (GLfloat)b.sx/(GLfloat)b.sy, 0.01 , 10.0);
+			glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
+			glTranslatef(pos.x,pos.y,-pos.z);		// apply movement
+			matrix44 m4(q);
+			glMultMatrixf(&m4.m[0][0]);	// apply quaternion rotation
+
+			// draw something simple
+			glColor4f(0,0,0,1);
+			glBegin(GL_LINE_STRIP);
+			loopi(0,101) glVertex3f( sin(float(i)*M_PI*2/50) , cos(float(i)*M_PI*3/50) ,cos(float(i)*M_PI*4/50) );
+			glEnd();
+
+			glPopMatrix();glMatrixMode(GL_PROJECTION);glPopMatrix();
+			fbo.disable();
+		};
+
+		w=Gui::Window("3D View",150,150,400,400);	
+		w.menu["Menu"]=m;
+		w.button["canvas"]=Gui::Button("",20,250);
+		w.button["canvas"].skin=Skin("");
+		w.button["canvas"].var.vec4["position"]=vec4f(0,0,2.5,0); // vec4
+		w.button["canvas"].var.vec4["rotation"]=vec4f(1,0,0,0); // quaternion
+		w.button["canvas"].var.number["zoom"]=70; // fov
+		w.button["canvas"].var.ptr["fbo"]=0;
+		w.button["canvas"].callback_all=render_func;
+		w.button["canvas"].callback_init=[](Gui::Window *w,Gui::Button* b,int i) // call before drawing the first time
+			{
+				if(w)if(b){b->var.ptr["fbo"]=new FBO(100,100);} // 100,100 is just for initialization; will be resized
+			};
+		w.button["canvas"].callback_exit=[](Gui::Window *w,Gui::Button* b,int i) // called from the button's destructor
+			{
+				if(w)if(b)if(b->var.ptr["fbo"]){delete(((FBO*)b->var.ptr["fbo"]));}
+			};
+	}
+	gui.dialog["3D"]=w;
+	gui.screen[0].window["3D View win1"]=w;
+}
+////////////////////////////////////////////////////////////////////////////////
 void draw_gui()
 {
 	gui.draw();
+}
+////////////////////////////////////////////////////////////////////////////////
+void exit_gui()
+{
+	gui.exit();
 }
 ////////////////////////////////////////////////////////////////////////////////
 class GLWidget : public QGLWidget {
@@ -217,6 +334,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event);
     void keyPressEvent(QKeyEvent *event);
 	void keyReleaseEvent(QKeyEvent* event) ;
+	void closeEvent(QCloseEvent *event);
 };
 ////////////////////////////////////////////////////////////////////////////////
 #include "moc.h"
@@ -227,8 +345,15 @@ GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent) {
 	connect(timer, SIGNAL(timeout()), this, SLOT(update()));
 	timer->start(10);
 }
-
+void GLWidget::closeEvent(QCloseEvent *event)
+{
+	exit_gui();
+	event->accept();
+}
 void GLWidget::initializeGL() {
+
+	int argc=0;char **argv=0;
+	glutInit(&argc,argv);
 
 	glewInit();
 	glEnable(GL_BLEND);

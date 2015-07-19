@@ -177,9 +177,6 @@ void init_gui()
 	// -------------------------------------------------------------------------
 	// Simple 3D Viewer
 
-	w=Gui::Window("3D View",150,150,400,400);	
-	w.menu["Menu"]=m;
-
 	// Add simple Renderer
 	{
 		// render callback function
@@ -199,7 +196,7 @@ void init_gui()
 			bool draw= (b.hover||b.pressed) && (gui.mouse.button[0] || gui.mouse.button[1] || gui.mouse.wheel!=0);
 			if(control!=&b)draw=1;
 		
-			FBO *fb=(FBO*)b.var.ptr["fbo"]; if(!fb) return;
+			void *fb=b.var.ptr["fbo"]; if(!fb) return;
 			FBO &fbo=*(FBO*)fb;
 
 			if(b.sx!=fbo.width || b.sy!=fbo.height )
@@ -212,7 +209,7 @@ void init_gui()
 			if (!draw) return;
 
 			quaternion q(b.var.vec4["rotation"]);
-			if(gui.mouse.button[0] & b.pressed)
+			if(gui.mouse.button[0] & b.pressed)				// rotate by left mouse
 			{
 				quaternion qx,qy;
 				qx.set_rotate_y( (float)gui.mouse.dx/100);
@@ -221,14 +218,14 @@ void init_gui()
 				b.var.vec4["rotation"]=vec4f(q.x,q.y,q.z,q.w);
 			}
 			double z=b.var.number["zoom"];
-			if(b.hover)
+			if(b.hover)										// zoom by wheel
 			{
 				z=clamp( z-gui.mouse.wheel*2 , 2,120 );
 				b.var.number["zoom"]=z;
 				gui.mouse.wheel=0;
 			}
 			vec4f pos=b.var.vec4["position"];
-			if(gui.mouse.button[1] && (b.pressed||b.hover))
+			if(gui.mouse.button[1] && (b.pressed||b.hover))	// move by middle button
 			{
 				pos=pos+vec4f((float)gui.mouse.dx*z/40000.0f,(float)gui.mouse.dy*z/40000.0f,0,0);
 				b.var.vec4["position"]=pos;
@@ -241,16 +238,18 @@ void init_gui()
 			glMatrixMode(GL_PROJECTION);glPushMatrix();glLoadIdentity();
 			gluPerspective(z, (GLfloat)b.sx/(GLfloat)b.sy, 0.01 , 10.0);
 			glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
-			glTranslatef(pos.x,pos.y,-pos.z);
-			matrix44 m(q);
-			glMultMatrixf(&m.m[0][0]);
+			glTranslatef(pos.x,pos.y,-pos.z);		// apply movement
+			glMultMatrixf(&matrix44(q).m[0][0]);	// apply quaternion rotation
 
 			glColor4f(0,0,0,1);
-			glutWireTeapot(1);
+			glutWireTeapot(1);	// render teapot
 
 			glPopMatrix();glMatrixMode(GL_PROJECTION);glPopMatrix();
 			fbo.disable();
 		};
+
+		w=Gui::Window("3D View",150,150,400,400);	
+		w.menu["Menu"]=m;
 		w.button["canvas"]=Gui::Button("",20,250);
 		w.button["canvas"].skin=Skin("");
 		w.button["canvas"].var.vec4["position"]=vec4f(0,0,2.5,0); // vec4
@@ -260,11 +259,11 @@ void init_gui()
 		w.button["canvas"].callback_all=render_func;
 		w.button["canvas"].callback_init=[](Gui::Window *w,Gui::Button* b,int i) // call before drawing the first time
 			{
-				if(w && b){b->var.ptr["fbo"]=new FBO(100,100);}
+				if(w)if(b){b->var.ptr["fbo"]=new FBO(100,100);} // 100,100 is just for initialization; will be resized
 			};
 		w.button["canvas"].callback_exit=[](Gui::Window *w,Gui::Button* b,int i) // called from the button's destructor
 			{
-				if(w && b)if(b->var.ptr["fbo"]){delete(((FBO*)b->var.ptr["fbo"]));}
+				if(w)if(b)if(b->var.ptr["fbo"]){delete(((FBO*)b->var.ptr["fbo"]));}
 			};
 	}
 	gui.dialog["3D"]=w;
