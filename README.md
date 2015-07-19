@@ -7,7 +7,7 @@
 
 After trying several gui's more or less suited for games (LibRocket, Qt, NVWidgets, CEgui, etc), I found that none of them was really light weight, easy to use and fully skinable at the same time. This was the reason I started to write my own GUI / C++. The project was completed in about one month.
 
-![Screenshot1](http://i.imgur.com/GJ3dH4e.png)
+![Screenshot1](http://i.imgur.com/R8DwPzI.png)
 
 **Features**
 
