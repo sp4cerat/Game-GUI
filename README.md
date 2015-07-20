@@ -19,7 +19,8 @@ After trying several gui's more or less suited for games (LibRocket, Qt, NVWidge
 * direct access to all controls and their members
 * Non-blocking visualization
 * Callback support
-* Different from most GUIs, Widgets are stored directly inside the GUI rather having local variables pointing to instances of an overwritten class.
+* No need to mess with inheritance and virtual functions
+* Different from most GUIs, Widgets and windows are stored completely inside the GUI, so no need to define any window or widget variables in your code.
 * Directory: Controls are stored and accessed by a tree structure that is rendered every time like a scene graph
 * No event loop, show function or update function
 * No need to have a timer that calls an update function
