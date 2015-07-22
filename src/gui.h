@@ -1631,35 +1631,49 @@ class Gui
 		void init(){ type=MENU;selected=0;selected=0;pad_up=pad_down=pad_left=pad_right=5;};
 
 		Tab():Button(){ init();}
-		Tab (String text,int pos_x,int pos_y,
+		Tab (int pos_x,int pos_y,
 			float width=200,  // default
 			float height=200, // default)
 			float tabwidth=global.number["tab_size_x"],
 			float tabheight=global.number["tab_size_y"],
 			int flags=LOCKED)
-			:Button(text,pos_x,pos_y,width,height,LEFT)
+			:Button("",pos_x,pos_y,width,height,LEFT)
 		{
 			init();
-			this->tabwidth=tabwidth;this->tabheight=tabheight;this->flags=flags;			
-			button[0]=Button(text,pad_left,pad_up,tabwidth,tabheight,LEFT);;
-			window[0]=Window("",pad_left,pad_up+tabheight,width-pad_left-pad_right,height-tabheight-pad_up-pad_down,Window::LOCKED);
-			window[0].skin=global.skin["tab_window"]; // use the button skin
-			window[0].pad_down=window[0].pad_up=0;
-			window[0].pad_left=window[0].pad_right=0;
-			button[0].skin=global.skin["tab_button"];
-			button[0].pressed=1;
+			this->tabwidth=tabwidth;this->tabheight=tabheight;this->flags=flags;	
 			skin=global.skin["tab"];
 		}	
-		void add_tab(String title)
+		void remove_tab(int i)
 		{
-			Button &last=button[button.size()-1];
-			float right=last.sx+last.x;
-			Button b(title,right,last.y,tabwidth,tabheight,LEFT);
-			b.skin=button[0].skin;
-			button.push_back(b);
-			Window w=Window("",window[0].x,window[0].y,window[0].sx,window[0].sy,Window::LOCKED);
-			w.skin=window[0].skin;
-			w.pad_down=w.pad_up=0;w.pad_left=w.pad_right=0;
+			if(i<window.size())
+			{
+				window.erase(i);
+				button.erase(i);
+			}
+		}
+		void add_tab(String title,Window* win=0)
+		{
+			if(button.size()==0)
+			{
+				button[0]=Button(title,pad_left,pad_up,tabwidth,tabheight,LEFT);;
+				button[0].pressed=1;
+			}
+			else
+			{
+				Button &last=button[button.size()-1];
+				float right=last.sx+last.x;
+				Button b(title,right,last.y,tabwidth,tabheight,LEFT);
+				b.skin=button[0].skin;
+				button.push_back(b);
+			}
+			
+			Window w=win ? *win : Window("");
+
+			w.flags=Window::LOCKED;
+			w.skin=global.skin["tab_window"]; // use the button skin
+			w.pad_down=w.pad_up=2;
+			w.pad_left=w.pad_right=2;
+			w.set_rect(pad_left,pad_up+tabheight,sx-pad_left-pad_right,sy-tabheight-pad_up-pad_down);
 			window.push_back(w);
 		};
 		void draw(float ox=0,float oy=0)
@@ -1703,7 +1717,7 @@ class Gui
 
 			Button::handle_callbacks(parent, index);
 			loopi(0,button.size()) button[i].handle_callbacks(parent,i);
-			window[selected].handle_callbacks(parent);
+			window[selected].handle_callbacks(parent,selected);
 
 			if(active) { active_control.active=1;active_control.set(this,type,parent,index); }
 		}
@@ -1715,6 +1729,7 @@ class Gui
 
 			if(window[selected].find_active(ox+x,oy+y,parent,index)) 
 			{
+				if(flags&MOVABLE)
 				if(mouse.button[0] && active_control.type==WINDOW)
 				{
 					window[selected].set_active(0);

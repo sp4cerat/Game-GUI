@@ -160,7 +160,8 @@ void init_gui()
 
 	// Add Tabbed Window to Background
 
-	Gui::Tab t=Gui::Tab("Win1",350,150,300,200,50,20);;
+	Gui::Tab t=Gui::Tab(350,150,300,250,50,20);;
+	t.add_tab("Win1");
 	t.add_tab("Win2");
 	t.add_tab("Win3");
 	t.add_tab("Win4");
