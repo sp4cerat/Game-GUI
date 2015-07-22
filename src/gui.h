@@ -1,3 +1,4 @@
+
 #include "core.h"
 #include "Bmp.h"
 #include "ogl.h"
@@ -873,6 +874,7 @@ class Gui
 		{
 			this->parent=parent;
 			if(active) { active_control.active=1;active_control.set(this,type,parent,index); }
+			if(call_init){call_init=0;if(callback_init)call_list.push_back(CallParams(callback_init,parent,this,index));}
 			if(callback_all) call_list.push_back(CallParams(callback_all,parent,this,index));
 			if(callback_text_entered && dirty) call_list.push_back(CallParams(callback_text_entered,parent,this,index));
 			dirty=0;
@@ -1418,6 +1420,7 @@ class Gui
 			if(flags&VSCROLLBAR) if(vscrollbar_visible) vscrollbar.handle_callbacks(this,index);
 			if(flags&TOGGLEBUTTON)togglebutton.handle_callbacks(this,index);
 
+			if(call_init){call_init=0;if(callback_init)call_list.push_back(CallParams(callback_init,parent,this,index));}
 			if(callback_all) call_list.push_back(CallParams(callback_all,parent,this,index));
 
 			if(active) { active_control.active=1;active_control.set(this,type,parent,index); }
