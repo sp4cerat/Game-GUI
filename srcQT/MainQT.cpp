@@ -452,6 +452,7 @@ int main(int argc, char *argv[]) {
 
     GLWidget window;
     window.show();
+	window.move(100,100);
 
     return app.exec();
 }

@@ -64,6 +64,26 @@ skin normal ../data/win8/combo_background.png
 skin scale inner 4 67 4 16
 skin end
 
+skin begin progress_horizontal_left
+skin normal ../data/win8/progress_horizontal_left.png
+skin scale inner 2 397 2 28
+skin end
+
+skin begin progress_horizontal_right
+skin normal ../data/win8/progress_horizontal_right.png
+skin scale inner 2 397 2 28
+skin end
+
+skin begin progress_vertical_left
+skin normal ../data/win8/progress_vertical_left.png
+skin scale inner 2 28 2 397
+skin end
+
+skin begin progress_vertical_right
+skin normal ../data/win8/progress_vertical_right.png
+skin scale inner 2 28 2 397
+skin end
+
 skin begin slider_horiz_left
 skin normal ../data/win8/slider_horiz_left_normal.png
 skin hover ../data/win8/slider_horiz_left_hover.png

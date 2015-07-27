@@ -98,6 +98,10 @@ class ControlList // kind of like map but with selectable order
 	}
 };
 
+Shader shader_scaled;//("../shader/SkinScaled");
+Shader shader_inner;
+Shader shader_repeated;
+
 class Skin // class to draw a textured quad
 {
 public:
@@ -109,6 +113,8 @@ public:
 	int tex_selected;
 	int scale_type;
 	int px[4],py[4]; // define scale geometry
+
+	static int instances;
 
 	void init(){tex_normal=tex_hover=tex_selected=0;loopi(0,4)px[i]=py[i]=0;scale_type=NODRAW;};
 
@@ -135,11 +141,10 @@ public:
 
 	inline void draw_scaled(float x,float y,float sx,float sy,float xmin,float xmax,float ymin,float ymax)
 	{
-		static Shader shader("../shader/SkinScaled");
-		shader.begin();
-		shader.setUniform1i("tex_skin",0);
+		shader_scaled.begin();
+		shader_scaled.setUniform1i("tex_skin",0);
 		ogl_drawquad(x+xmin,y+ymin,x+xmax,y+ymax , xmin/sx,ymin/sy,xmax/sx,ymax/sy );
-		shader.end();
+		shader_scaled.end();
 	}
 
 	inline void draw_repeated(float x,float y,float sx,float sy,float xmin,float xmax,float ymin,float ymax)
@@ -148,28 +153,28 @@ public:
 		if(sx<px[1]+px[3]-px[2]) px1=sx/2;
 		if(sy<py[1]+py[3]-py[2]) py1=sy/2;
 
-		static Shader shader("../shader/SkinRepeated");
-		shader.begin();
-		shader.setUniform1i("tex_skin",0);
-		shader.setUniform4f("px",px[0],px1,px[2],px[3]);
-		shader.setUniform4f("py",py[0],py1,py[2],py[3]);
-		shader.setUniform4f("pos",sx,sy,0,0);
+		//static Shader shader("../shader/SkinRepeated");
+		shader_repeated.begin();
+		shader_repeated.setUniform1i("tex_skin",0);
+		shader_repeated.setUniform4f("px",px[0],px1,px[2],px[3]);
+		shader_repeated.setUniform4f("py",py[0],py1,py[2],py[3]);
+		shader_repeated.setUniform4f("pos",sx,sy,0,0);
 		
 		ogl_drawquad(x+xmin,y+ymin,x+xmax,y+ymax , xmin,ymin,xmax,ymax );
-		shader.end();
+		shader_repeated.end();
 	}
 		
 	inline void draw_scaledinner(float x,float y,float sx,float sy,float xmin,float xmax,float ymin,float ymax)
 	{
-		static Shader shader("../shader/SkinScaledInner");
-		shader.begin();
-		shader.setUniform1i("tex_skin",0);
-		shader.setUniform4f("px",px[0],px[1],px[2],px[3]);
-		shader.setUniform4f("py",py[0],py[1],py[2],py[3]);
-		shader.setUniform4f("pos",sx,sy,0,0);
+		//static Shader shader("../shader/SkinScaledInner");
+		shader_inner.begin();
+		shader_inner.setUniform1i("tex_skin",0);
+		shader_inner.setUniform4f("px",px[0],px[1],px[2],px[3]);
+		shader_inner.setUniform4f("py",py[0],py[1],py[2],py[3]);
+		shader_inner.setUniform4f("pos",sx,sy,0,0);
 		//ogl_drawquad(x+xmin,y,x+xmax,y+sy , xmin,0,xmax,sy );
 		ogl_drawquad(x+xmin,y+ymin,x+xmax,y+ymax , xmin,ymin,xmax,ymax );
-		shader.end();
+		shader_inner.end();
 	}
 
 	inline void draw(float x,float y,float sx,float sy,float xmin=0,float xmax=-1,float ymin=0,float ymax=-1)
@@ -454,10 +459,10 @@ class Gui
 		{
 			init();this->x=x; this->y=y; minsx=sx=width; minsy=sy=height; text=buttontext; align=alignment;
 		}
-		inline void draw(float ox=0,float oy=0)
+		inline void draw(float ox=0,float oy=0,bool cliptest=1)
 		{
 			if(text.size()==0) return;
-			if(Rect::is_clipped(ox,oy)) return;
+			if(cliptest && Rect::is_clipped(ox,oy)) return;
 
 			float align_x=0; // LEFT
 			if(align==CENTER)	align_x=(sx-dtx_string_width(text.c_str()))/2-pad_left ;
@@ -561,7 +566,7 @@ class Gui
 
 		void draw(float ox=0,float oy=0, bool manage=true, float xmin=0, float xmax=-1, float ymin=0, float ymax=-1)
 		{
-			if(Rect::is_clipped(ox,oy)) return;
+			if(manage)if(Rect::is_clipped(ox,oy)) return;
 
 			if(manage && active && flags!=DEACTIVATED)
 			{
@@ -577,7 +582,7 @@ class Gui
 			if(tex>0) skin.draw(x+ox,y+oy,sx,sy,xmin,xmax,ymin,ymax);
 			ogl_bind(0,0);
 
-			Label::draw(ox,oy);		
+			Label::draw(ox,oy,manage);		
 			
 			hover=0;//if(manage)pressed&=active;
 		};
@@ -1048,6 +1053,7 @@ class Gui
 		{
 			init();
 			val=val_default; 
+			skin=Skin();
 			this->val_min=val_min;
 			this->val_max=val_max;
 			this->flags=flags;
@@ -1057,7 +1063,20 @@ class Gui
 				right.skin=global.skin["slider_vert_right"];
 				button.skin=global.skin["slider_vert_button"];
 			}
-			if(flags&PROGRESSBAR){ button.flags=DEACTIVATED;right.flags=DEACTIVATED;left.flags=DEACTIVATED;button.skin=Skin(); }
+			if(flags&PROGRESSBAR)
+			{ 
+				if(flags&HORIZONTAL)
+				{
+					left.skin=global.skin["progress_horizontal_left"];
+					right.skin=global.skin["progress_horizontal_right"];
+				}
+				if(flags&VERTICAL)
+				{
+					left.skin=global.skin["progress_vertical_left"];
+					right.skin=global.skin["progress_vertical_right"];
+				}
+				button.flags=DEACTIVATED;right.flags=DEACTIVATED;left.flags=DEACTIVATED;button.skin=Skin(); 
+			}
 		}	
 		void draw(float ox=0,float oy=0)
 		{
@@ -1079,12 +1098,14 @@ class Gui
 			}
 			else
 			{
-				float slider_pixel_pos=(val-val_min)*sy/(val_max-val_min);
+				float slider_pixel_pos=sy-(val-val_min)*sy/(val_max-val_min);
 				button.set_rect(x,y-sx/2+slider_pixel_pos,sx,sx); // square shaped button ; todo: add ratio
 				right.draw(ox,oy,0,0,sx,0,slider_pixel_pos);
 				left.draw(ox,oy,0,0,sx,slider_pixel_pos,sy);
 			}
 			button.draw(ox,oy,0);
+
+			Button::draw(ox,oy,0);
 	
 			if(active)  
 			{
@@ -1094,7 +1115,7 @@ class Gui
 					if(flags&HORIZONTAL)
 						val=clamp((mouse.x-x-ox)*(val_max-val_min)/sx+val_min,val_min,val_max);
 					else
-						val=clamp((mouse.y-y-oy)*(val_max-val_min)/sy+val_min,val_min,val_max);
+						val=clamp((sy-(mouse.y-y-oy))*(val_max-val_min)/sy+val_min,val_min,val_max);
 
 					if(!mouse.button[0]) set_active(0);
 				}
@@ -1134,7 +1155,10 @@ class Gui
 
 			Button::draw(ox,oy,0);
 
-			if(active)  if(mouse.button_released[0]) set_active(0); 
+			if(active)  if(mouse.button_released[0])
+			{
+				set_active(0);
+			}
 		}
 		bool find_active(int ox=0,int oy=0,Window* parent=0,int index=0)
 		{
@@ -1148,6 +1172,13 @@ class Gui
 				return true;
 			}
 			return false;
+		}
+		void handle_callbacks(Window* parent=0,int index=0)
+		{
+			this->parent=parent;
+			this->parent_index=index;	
+			if(active)if(mouse.button_released[0])if(callback_pressed) call_list.push_back(CallParams(callback_pressed,parent,this,index));
+			if(callback_all) call_list.push_back(CallParams(callback_all,parent,this,index));
 		}
 	};
 	class Menu; class Tab;
@@ -1806,10 +1837,18 @@ class Gui
 		fclose(f1);
 	}
 
-	void exit() { 	dialog.clear();screen.clear();  };
+	void exit() 
+	{ 	
+		dialog.clear();
+		screen.clear();  
+	};
 
 	bool init(int flags=0,String cfg_vars="../data/gui_global.txt",String cfg_skin="../data/gui_skin.txt")
 	{
+		shader_scaled=Shader("../shader/SkinScaled");
+		shader_inner=Shader("../shader/SkinScaledInner");
+		shader_repeated=Shader("../shader/SkinRepeated");
+
 		mouse.init(); keyb.init();
 
 		global.load((char*)cfg_vars.c_str());

@@ -1,6 +1,7 @@
 class Shader
 {
 public:
+	Shader(){};
 	Shader(std::string shadername)
 	{
 		printf("Shader %s\n",shadername.c_str());

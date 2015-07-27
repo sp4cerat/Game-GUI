@@ -175,6 +175,39 @@ void init_gui()
 	t.flags=Gui::Tab::MOVABLE; // Make it movable
 	gui.screen[0].tab["mytab"]=t;
 
+	// Horizontal Progress Bar
+	{
+		Gui::Slider s =Gui::Slider(	0,100,50, 		/* min,max,default*/	
+									20,620,400,30,	/* window x,y,sx,sy */ 
+									Gui::Slider::HORIZONTAL|Gui::Slider::PROGRESSBAR);
+		s.pad_up=6;
+
+		s.callback_all=	[](Gui::Window *w,Gui::Button* b,int i)
+		{
+			Gui::Slider &s=*((Gui::Slider*) b);
+			s.val=float((timeGetTime()>>4)%1000)*100/1000;
+			s.text=Gui::String("Loading ")+int(s.val)+" %";
+		};
+
+		gui.screen[0].slider["hprogress"]=s;
+	}
+
+	// Vertical Progress Bar
+	{
+		Gui::Slider s =Gui::Slider(	0,100,50, 		/* min,max,default*/	
+									950,20,30,400,	/* window x,y,sx,sy */ 
+									Gui::Slider::VERTICAL|Gui::Slider::PROGRESSBAR);
+		s.pad_up=200;
+
+		s.callback_all=	[](Gui::Window *w,Gui::Button* b,int i)
+		{
+			Gui::Slider &s=*((Gui::Slider*) b);
+			s.val=float((timeGetTime()>>4)%1000)*100/1000;
+			s.text=Gui::String(int(s.val));
+		};
+
+		gui.screen[0].slider["vprogress"]=s;
+	}
 	// -------------------------------------------------------------------------
 	// Simple 3D Viewer
 
