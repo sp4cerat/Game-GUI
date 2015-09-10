@@ -226,3 +226,15 @@ skin end
 skin begin mouse_arrow
 skin normal ../data/mouse/arrow.png
 skin end
+
+skin begin file_dialog
+skin normal ../data/win8/win8_noscroll/window_normal.png
+skin hover ../data/win8/win8_noscroll/window_hover.png
+skin pressed ../data/win8/win8_noscroll/window_selected.png
+skin scale inner 34 327 94 225
+skin end
+
+skin begin file_list_window
+skin hover ../data/win8/hscrollbar_button_hover.png
+skin pressed ../data/win8/hscrollbar_button_selected.png
+skin end

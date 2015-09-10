@@ -273,7 +273,10 @@ class Gui
 		int window_index;
 		int control_index;
 
-		void set(Button* p,int t,Window* win=0,int index=0){ptr=p;type=t;w_ptr=win;control_index=index;
+		void set(Button* p,int t,Window* win=0,int index=0)
+		{
+			if(ptr!=0)return;
+			ptr=p;type=t;w_ptr=win;control_index=index;
 			//if(mouse.button[0])printf("type %d index %d\n",type,index);
 		}
 
@@ -539,9 +542,9 @@ class Gui
 		{
 			if(flags==DEACTIVATED) return;
 			parent=w;parent_index=index;
-			if(call_init){ if(callback_init) call_list.push_back(CallParams(callback_init,w,this,index));call_init=0;}
-			if(active) { active_control.active=1;active_control.set(this,type,w,index); }
-			if(callback_all) call_list.push_back(CallParams(callback_all,w,this,index));
+			if(call_init){ if(callback_init) call_list.push_back(CallParams(callback_init,parent,this,index));call_init=0;}
+			if(active) { active_control.active=1;active_control.set(this,type,parent,index); }
+			if(callback_all) call_list.push_back(CallParams(callback_all,parent,this,index));
 		}
 		
 		bool find_active(int ox=0,int oy=0,Window* parent=0,int index=0)
@@ -665,7 +668,7 @@ class Gui
 			if(selection_changed)
 			{
 				if(callback_selected)
-					call_list.push_back(CallParams(callback_selected,w,this,index));
+					call_list.push_back(CallParams(callback_selected,parent,this,index));
 
 				selection_changed=0;
 			}
@@ -1281,7 +1284,14 @@ class Gui
 			if(!(flags&LOCKED))
 			if(title.active)
 			{
-				x+=mouse.dx;y+=mouse.dy;y=clamp(y,0,screen_resolution_y-title_height);
+				x+=mouse.dx;y+=mouse.dy;float borderdist=20;
+				y=clamp(y,0,screen_resolution_y-title_height);
+				x=clamp(x,0,screen_resolution_x-borderdist);
+				if(parent_rect)
+				{
+					x=min(x,parent_rect->x+parent_rect->sx-borderdist);
+					y=min(y,parent_rect->y+parent_rect->sy-borderdist);
+				}
 				if(!mouse.button[0]) title.set_active(0);
 			}
 			//resize?
@@ -1411,7 +1421,7 @@ class Gui
 				}
 			}
 		}
-		void extend_rect(Rect &r) 
+		void window_rect(Rect &r) 
 		{
 			loopi(0,button.size())		button[i]	.extend_rect(r);
 			loopi(0,radio.size())		radio[i]	.extend_rect(r);
@@ -1431,11 +1441,14 @@ class Gui
 
 			// get client area
 			clientrect.set_rect(x,y,0,0);
-			extend_rect(clientrect);
+			window_rect(clientrect);
 
 			// callbacks
 			loopi(0,menu .size())		menu[i].handle_callbacks(this,i);
-			loopi(0,window.size())		window[i].handle_callbacks(this,i);
+			loopi(0,window.size())		
+			{
+				window[i].handle_callbacks(this,i);
+			}
 			loopi(0,tab .size())		tab[i].handle_callbacks(this,i);
 			loopi(0,combo .size())		combo[i].handle_callbacks(this,i);
 			loopi(0,button.size())		button[i].handle_callbacks(this,i);
@@ -1464,31 +1477,31 @@ class Gui
 
 			Rect tmp_cliprect=clip_rect;
 
-			loopi(0,menu.size())if(menu[i].find_active(ox+x,oy+y,parent,index))	goto window_ret_true;
+			loopi(0,menu.size())if(menu[i].find_active(ox+x,oy+y,this,index))	goto window_ret_true;
 
 			if(!Button::mouseinside(ox,oy)) return false;
 
 			// window standard controls
-			if(flags&CLOSEBUTTON)if(closebutton.find_active(x+ox,y+oy,parent,index))	goto window_ret_true;
-			if(flags&TOGGLEBUTTON)if(togglebutton.find_active(x+ox,y+oy,parent,index)) goto window_ret_true;
-			if(flags&TITLEBAR)	 if(title.find_active(x+ox,y+oy,parent,index))	goto window_ret_true;
-			if(flags&RESIZEABLE) if(resizebutton.find_active(x+ox,y+oy,parent,index))	goto window_ret_true;
-			if(flags&HSCROLLBAR) if(hscrollbar_visible)  if(hscrollbar.find_active(0,0,parent,index))	goto window_ret_true;
-			if(flags&VSCROLLBAR) if(vscrollbar_visible)  if(vscrollbar.find_active(0,0,parent,index))	goto window_ret_true;
+			if(flags&CLOSEBUTTON)if(closebutton.find_active(x+ox,y+oy,this,index))	goto window_ret_true;
+			if(flags&TOGGLEBUTTON)if(togglebutton.find_active(x+ox,y+oy,this,index)) goto window_ret_true;
+			if(flags&TITLEBAR)	 if(title.find_active(x+ox,y+oy,this,index))	goto window_ret_true;
+			if(flags&RESIZEABLE) if(resizebutton.find_active(x+ox,y+oy,this,index))	goto window_ret_true;
+			if(flags&HSCROLLBAR) if(hscrollbar_visible)  if(hscrollbar.find_active(0,0,this,index))	goto window_ret_true;
+			if(flags&VSCROLLBAR) if(vscrollbar_visible)  if(vscrollbar.find_active(0,0,this,index))	goto window_ret_true;
 
 			Rect frame (pad_left+x+ox,pad_up+y+oy,sx-pad_right-pad_left,sy-pad_down-pad_up);
 			if(mouse.x>=frame.x)if(mouse.y>=frame.y)
 			if(mouse.x<=frame.sx+frame.x)if(mouse.y<=frame.sy+frame.y)
 			{
 				clip_rect=clip;
-				loopi(0,window.size())		if(window[i].find_active(ox_scroll,oy_scroll,parent,index ))	goto window_ret_true;
-				loopi(0,tab.size())			if(tab[i].find_active(ox_scroll,oy_scroll,parent,index))		goto window_ret_true;
-				loopi(0,combo.size())		if(combo[i].find_active(ox_scroll,oy_scroll,parent,index))		goto window_ret_true;
-				loopi(0,slider.size())		if(slider[i].find_active(ox_scroll,oy_scroll,parent,index))		goto window_ret_true;
-				loopi(0,checkbox.size())	if(checkbox[i].find_active(ox_scroll,oy_scroll,parent,index))	goto window_ret_true;
-				loopi(0,textedit.size())	if(textedit[i].find_active(ox_scroll,oy_scroll,parent,index))	goto window_ret_true;	
-				loopi(0,radio.size())		if(radio[i].find_active(ox_scroll,oy_scroll,parent,index))		goto window_ret_true;
-				loopi(0,button.size())		if(button[i].find_active(ox_scroll,oy_scroll,parent,index))		goto window_ret_true;
+				loopi(0,window.size())		if(window[i].find_active(ox_scroll,oy_scroll,this,index ))	goto window_ret_true;
+				loopi(0,tab.size())			if(tab[i].find_active(ox_scroll,oy_scroll,this,index))		goto window_ret_true;
+				loopi(0,combo.size())		if(combo[i].find_active(ox_scroll,oy_scroll,this,index))		goto window_ret_true;
+				loopi(0,slider.size())		if(slider[i].find_active(ox_scroll,oy_scroll,this,index))		goto window_ret_true;
+				loopi(0,checkbox.size())	if(checkbox[i].find_active(ox_scroll,oy_scroll,this,index))	goto window_ret_true;
+				loopi(0,textedit.size())	if(textedit[i].find_active(ox_scroll,oy_scroll,this,index))	goto window_ret_true;	
+				loopi(0,radio.size())		if(radio[i].find_active(ox_scroll,oy_scroll,this,index))		goto window_ret_true;
+				loopi(0,button.size())		if(button[i].find_active(ox_scroll,oy_scroll,this,index))		goto window_ret_true;
 				clip_rect.set_rect(ox+x,oy+y,sx,sy);
 			}
 			if(mouseinside(ox,oy))
@@ -1538,7 +1551,7 @@ class Gui
 		{
 			Rect r(0,0,0,0);
 			window.extend_rect(r);
-			window.sx=r.sx;window.sy=r.sy;
+			window.sx=r.sx-x;window.sy=r.sy-y;
 		}
 		void add_item(String s , void (*callback_item)(Window *,Button* ,int )=0)
 		{
@@ -1923,7 +1936,7 @@ class Gui
 		active_control.type=NONE;
 		active_control.window_index=-1;
 
-		screen[active_screen].handle_callbacks(0,active_screen);
+		screen[active_screen].handle_callbacks(&screen[active_screen],active_screen);
 		
 		if(!active_control.active) return;
 		if(!active_control.ptr)return;
@@ -2091,6 +2104,8 @@ Gui::String gui_file_get_chg_dir(Gui::String cur,Gui::String dir)
 	{
 		int last=cur.find_last_of("/\\");
 		if(last!= -1) cur.resize(last);
+		//if(last>2) cur.resize(last);
+		
 		return cur;
 	}
 	return cur+"\\"+dir;
@@ -2105,7 +2120,7 @@ Gui::Window gui_file_list_window(Gui::String path=".",Gui::String extension="")
 {
 	std::vector<std::string> listdirs,listfiles;std::vector<long> listfilesize;
 
-	file_get_dir(path.c_str(),listdirs,listfiles,listfilesize,(char*)extension.c_str());
+	file_get_dir((path+"\\").c_str(),listdirs,listfiles,listfilesize,(char*)extension.c_str());
 
 	Gui::Window w=Gui::Window("",20,80,300,220,Gui::Window::VSCROLLBAR|Gui::Window::LOCKED); //subwindow
 	w.var.string["extension"]=extension;
@@ -2139,15 +2154,11 @@ Gui::Window gui_file_list_window(Gui::String path=".",Gui::String extension="")
 
 	loopi(0,listdirs.size()+listfiles.size())
 	{
-		static Skin skin("",//"../data/win8/hscrollbar_normal.png",
-				"../data/win8/hscrollbar_button_hover.png",
-				"../data/win8/hscrollbar_button_selected.png");		
-
 		Gui::String name= i<listdirs.size() ? listdirs[i] : listfiles[i-listdirs.size()] ;
 		Gui::String filesize= i<listdirs.size() ? "<dir>":  gui_file_get_size_str(listfilesize[i-listdirs.size()]) ;
 		w.button[i] = Gui::Button(name,0,i*20,280);
 		w.button[i].pad_right=90;
-		w.button[i].skin=skin;
+		w.button[i].skin=gui.global.skin["file_list_window"];
 		w.button[i].align=Gui::LEFT;
 		w.button[i].callback_pressed=button_select_callback;
 		w.label[i]  = Gui::Label(filesize,220,i*20,280);
@@ -2165,11 +2176,7 @@ Gui::Window gui_file_dialog(Gui::String title="Load File",
 {
 	Gui::Window w=Gui::Window(title,pos_x,pos_y,340,410,Gui::Window::TITLEBAR|Gui::Window::CLOSEBUTTON|Gui::Window::MOVE_TO_FRONT);
 
-	static Skin skin=Skin (	"../data/win8/win8_noscroll/window_normal.png",
-							"../data/win8/win8_noscroll/window_hover.png",
-							"../data/win8/win8_noscroll/window_selected.png",
-							Skin::SCALEINNER,34,327,94,225);
-	w.skin=skin;
+	w.skin=gui.global.skin["file_dialog"];
 	w.pad_right=0; w.pad_up=0;
 
 	// Ok + Cancel Gui::Buttons + Callback
@@ -2182,7 +2189,7 @@ Gui::Window gui_file_dialog(Gui::String title="Load File",
 		((Gui::Window*) wp)->flags=Gui::Window::CLOSED; 			
 	}; 
 
-	w.label["dir"]=Gui::Label(path,20,40,300);
+	w.label["dir"]=Gui::Label(path,20,40,300,20);
 	w.textedit["Filename"]=Gui::TextEdit(30,Gui::String("*")+extension,20,320,300);
 	w.textedit["Filename"].var.string["dir"]=path;
 	w.window["list"]=gui_file_list_window(path,extension);
