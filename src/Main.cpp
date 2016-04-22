@@ -45,9 +45,11 @@ void init_gui()
 	w.combo ["cb"]=Gui::Combo(120,100,60,20);
 	w.combo ["cb"].add_item("test");
 	w.combo ["cb"].add_item(L"東京");
+	w.combo ["cb"].set_selected(1);
 	w.combo ["cb"].callback_selected=
 		[](Gui::Window *w,Gui::Button* control,int index) // text entered callback example
 		{
+			if (!w) return; if (!control) return;
 			Gui::Combo &c=*(Gui::Combo*)control;
 			w->label["l"].text=Gui::String( c.selected ) + "  selected";
 			w->label["l"].textcolor=vec4f(1,0,0,1);
